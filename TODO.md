@@ -1,9 +1,12 @@
-# TODO — pypolycall (Python)
+# TODO — pypolycall
 
-Status: ✅ implemented reference adapter for libpolycall 1.5.0.
+Status: implemented Python adapter with npm directory indexing.
 
-- [x] Adapter skeleton mapping Python idioms to the FFI boundary
-- [x] `pypolycallrc` on the shared schema
-- [x] Example driving the CLI/FFI
-- [x] Smoke test
-- [ ] Publish to the Python package registry (post-1.5.0)
+- [x] Python `ctypes` adapter for libpolycall 1.5
+- [x] Shared `pypolycallrc` configuration
+- [x] Python package metadata under `pyproject.toml`
+- [x] npm source package with `src`, `dist`, `examples`, and `tests`
+- [x] Dynamic JavaScript directory/file index and safe path resolver
+- [x] npm subpath exports and package integrity test
+- [ ] Build signed wheel and source-distribution release artifacts
+- [ ] Publish to the Python package index

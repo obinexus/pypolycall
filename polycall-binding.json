@@ -1,11 +1,12 @@
 {
   "name": "pypolycall",
+  "package": "@obinexusltd/pypolycall",
   "version": "1.5.0",
   "language": "Python",
   "adapter": true,
   "ffi": true,
   "config": "pypolycallrc",
   "core": "../../src",
-  "license": "MIT OBINexus",
+  "license": "MIT",
   "author": "Nnamdi Michael Okpala"
 }

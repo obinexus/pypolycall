@@ -1,0 +1,63 @@
+{
+  "name": "@obinexusltd/pypolycall",
+  "version": "1.0.0",
+  "description": "Python ctypes source binding for libpolycall 1.5",
+  "main": "index.js",
+  "type": "commonjs",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json",
+    "./src/*": "./src/*",
+    "./dist/*": "./dist/*",
+    "./examples/*": "./examples/*",
+    "./tests/*": "./tests/*"
+  },
+  "files": [
+    "index.js",
+    "src/",
+    "dist/",
+    "examples/",
+    "tests/",
+    "pyproject.toml",
+    "pypolycallrc",
+    "polycall-binding.json",
+    "README.md",
+    "TODO.md",
+    "LICENSE"
+  ],
+  "directories": {
+    "lib": "src",
+    "src": "src",
+    "dist": "dist",
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "build:python": "python -m build --outdir dist",
+    "test": "node tests/package.test.js && python -B tests/test_smoke.py",
+    "test:package": "node tests/package.test.js",
+    "test:python": "python -B tests/test_smoke.py",
+    "verify": "npm test",
+    "prepack": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/obinexus/pypolycall.git"
+  },
+  "keywords": [
+    "libpolycall",
+    "polycall",
+    "python",
+    "ctypes",
+    "ffi"
+  ],
+  "author": "Nnamdi Michael Okpala <okpalan@protonmail.com>",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/obinexus/pypolycall/issues"
+  },
+  "homepage": "https://github.com/obinexus/pypolycall#readme"
+}
