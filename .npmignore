@@ -1,0 +1,7 @@
+dist/*.whl
+dist/*.tar.gz
+**/__pycache__/
+*.pyc
+/build/
+/src/pypolycall/_native/
+.pytest_cache/

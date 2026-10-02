@@ -1,0 +1,5 @@
+Vendored Polycall core sources (build inputs for libpolycall only).
+origin:  https://github.com/obinexus/polycall
+commit:  32f96e2ba46c53dfe515549124ecb12c6b103d33
+describe: 32f96e2
+Regenerate with: python scripts/vendor_core.py <path-to-polycall-checkout>

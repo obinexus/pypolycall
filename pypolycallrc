@@ -1,8 +1,8 @@
 # pypolycallrc - read-only Python runtime overrides for libpolycall
 #
-# This file uses the SHARED polycall schema (src/config/polycall_config_schema.c).
-# It introduces no new keys or parser: the Python adapter passes this path to
-# the core via the FFI boundary. Values here override polycallrc for Python.
+# Validated by the core's own grammar (`polycall config validate`, or
+# polycall_ffi_run_config() through pypolycall.run_config); no new keys and
+# no parser here. Values override the global Polycallrc for Python.
 
 log_level=info
 max_connections=1000

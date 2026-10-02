@@ -1,5 +1,10 @@
-# Example Python runtime override
-log_level=debug
-max_connections=128
-network_timeout=2000
+# pypolycallrc - read-only Python runtime overrides for libpolycall
+#
+# Validated by the core's own grammar (`polycall config validate`, or
+# polycall_ffi_run_config() through pypolycall.run_config); no new keys and
+# no parser here. Values override the global Polycallrc for Python.
+
+log_level=info
+max_connections=1000
+network_timeout=5000
 tls_enabled=false

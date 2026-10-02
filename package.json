@@ -1,7 +1,7 @@
 {
   "name": "@obinexusltd/pypolycall",
   "version": "1.0.0",
-  "description": "Python ctypes source binding for libpolycall 1.5",
+  "description": "npm distribution of the pypolycall Python sources (not a Node binding; install the Python package with pip: python -m pip install pypolycall)",
   "main": "index.js",
   "type": "commonjs",
   "exports": {
@@ -14,8 +14,8 @@
   },
   "files": [
     "index.js",
-    "src/",
     "dist/",
+    "src/",
     "examples/",
     "tests/",
     "pyproject.toml",
@@ -23,7 +23,10 @@
     "polycall-binding.json",
     "README.md",
     "TODO.md",
-    "LICENSE"
+    "LICENSE",
+    "core/",
+    "CMakeLists.txt",
+    "scripts/"
   ],
   "directories": {
     "lib": "src",
@@ -34,11 +37,9 @@
   },
   "scripts": {
     "build:python": "python -m build --outdir dist",
-    "test": "node tests/package.test.js && python -B tests/test_smoke.py",
+    "test": "node tests/package.test.js && python -m pytest -q tests",
     "test:package": "node tests/package.test.js",
-    "test:python": "python -B tests/test_smoke.py",
-    "verify": "npm test",
-    "prepack": "npm test"
+    "test:python": "python -m pytest -q tests"
   },
   "repository": {
     "type": "git",

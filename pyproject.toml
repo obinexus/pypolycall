@@ -1,20 +1,53 @@
 [build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
+# The wheel bundles a freshly built libpolycall (CMake, from the vendored
+# core in core/); building the sdist therefore needs a C compiler. pip's
+# build isolation fetches scikit-build-core (and CMake/Ninja if the system
+# has none) -- nothing has to be preinstalled besides the compiler.
+requires = ["scikit-build-core>=0.10"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "pypolycall"
-version = "1.5.0"
-description = "Python adapter for libpolycall (thin ctypes FFI over the shared core)"
+version = "1.1.0"
+description = "Python binding for Polycall: ctypes over the libpolycall binding ABI v1, with a pure-Python polycall-peer/1 fallback"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "Nnamdi Michael Okpala", email = "okpalan@protonmail.com" }]
-keywords = ["polycall", "ffi", "obinexus", "adapter"]
+keywords = ["polycall", "ffi", "ctypes", "peer-to-peer", "obinexus"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: C",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
+  "Topic :: Software Development :: Libraries",
+  "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
 
 [project.urls]
-Homepage = "https://www.libpolycall.obinexus.org"
-Repository = "https://github.com/obinexus/libpolycall"
+Homepage = "https://github.com/obinexus/pypolycall"
+Repository = "https://github.com/obinexus/pypolycall"
+Issues = "https://github.com/obinexus/pypolycall/issues"
+Core = "https://github.com/obinexus/polycall"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[project.scripts]
+pypolycall = "pypolycall.__main__:main"
+
+[tool.scikit-build]
+minimum-version = "0.10"
+cmake.version = ">=3.20"
+cmake.build-type = "Release"
+# ctypes, no CPython C-API: one wheel per platform, any Python 3 version
+wheel.py-api = "py3"
+wheel.packages = ["src/pypolycall"]
+sdist.include = ["core/**", "CMakeLists.txt", "pypolycallrc", "LICENSE"]
+sdist.exclude = ["dist", "build", "**/__pycache__", "node_modules", ".qa"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

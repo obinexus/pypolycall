@@ -1,12 +1,16 @@
 {
   "name": "pypolycall",
-  "package": "@obinexusltd/pypolycall",
-  "version": "1.5.0",
+  "package": {
+    "pypi": "pypolycall",
+    "npm": "@obinexusltd/pypolycall"
+  },
+  "version": "1.1.0",
   "language": "Python",
   "adapter": true,
-  "ffi": true,
+  "ffi": "ctypes (+ pure-Python polycall-peer/1 fallback)",
   "config": "pypolycallrc",
-  "core": "../../src",
+  "core": "polycall >= 1.1.0 (binding ABI 1)",
+  "core_repository": "https://github.com/obinexus/polycall",
   "license": "MIT",
   "author": "Nnamdi Michael Okpala"
 }
