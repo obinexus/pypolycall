@@ -18,14 +18,14 @@ import ctypes
 import logging
 
 from . import _native
-from .errors import (E_TOO_LARGE, NAMES, OK, PolycallError, PolycallLibraryError)
+from .errors import (NAMES, OK, PolycallError, PolycallLibraryError, check_u32)
 from .fallback import FallbackPeer
 from .peer import Peer
 
 __all__ = [
     "__version__", "version", "abi_version", "library_path", "native_available",
-    "run_config", "describe", "call", "Peer", "FallbackPeer", "open_peer", "load_library",
-    "PolycallError", "PolycallLibraryError", "NAMES",
+    "strerror", "run_config", "describe", "call", "Peer", "FallbackPeer", "open_peer",
+    "load_library", "PolycallError", "PolycallLibraryError", "NAMES",
 ]
 __version__ = "1.1.0"
 log = logging.getLogger("pypolycall")
@@ -58,49 +58,66 @@ def load_library() -> ctypes.CDLL:
     return _native.load()
 
 
+def strerror(code: int) -> str:
+    """polycall_strerror(code): the library's static name for any status."""
+    return _native.strerror(_native.load(), code)
+
+
 def run_config(path: str, strict: bool = True, *, run: bool | None = None) -> int:
-    """Validate a Polycallfile / Polycallrc / *-polycallrc with the core's
-    grammar; returns 0 (raises PolycallError otherwise). strict=True (the
-    historical run=1): unknown keys and settings this build cannot honour
-    (tls_enabled=true) are errors. ``run=`` is the 1.0 spelling of strict."""
+    """Validate a Polycallfile / Polycallrc / *-polycallrc through the core's
+    shared configuration interface, polycall_ffi_run_config() -- the grammar
+    of `polycall config validate`; nothing is parsed in Python. Returns 0
+    (raises PolycallError otherwise).
+
+    strict=True (run=1, the default): validate for running with this build --
+    unknown keys are errors and settings it cannot honour (tls_enabled=true)
+    are E_UNSUPPORTED. strict=False (run=0): unknown keys are warnings, as
+    `polycall config validate` reports them. ``run=`` is the 1.0 spelling."""
     if run is not None:
         strict = bool(run)
     lib = _native.load()
-    _native.check(lib, lib.polycall_ffi_run_config(_native.enc(path), 1 if strict else 0))
+    _native.check(lib, lib.polycall_ffi_run_config(_native.enc(path, "config path"),
+                                                   1 if strict else 0))
     return 0
 
 
 def describe(path: str) -> str:
-    """JSON description of a configuration file, as JSON text (1.0
-    compatible; json.loads() it for a dict)."""
+    """polycall_ffi_describe(): JSON description of a configuration file
+    (layer, servers, peers, key/values; secrets never resolved), as JSON
+    text (1.0 compatible; json.loads() it for a dict)."""
     lib = _native.load()
-    p = _native.enc(path)
-    n = lib.polycall_ffi_describe(p, None, 0)
-    if n < 0:
-        _native.check(lib, n)
-    buf = ctypes.create_string_buffer(n + 1)
-    n2 = lib.polycall_ffi_describe(p, buf, n + 1)
-    if n2 < 0:
-        _native.check(lib, n2)
-    return buf.value.decode("utf-8")
+    p = _native.enc(path, "config path")
+    cap = 4096
+    while True:
+        buf = ctypes.create_string_buffer(cap)
+        n = lib.polycall_ffi_describe(p, buf, cap)
+        if n < 0:
+            _native.check(lib, n)
+        if n < cap:
+            return buf.value.decode("utf-8")
+        cap = n + 1                    # snprintf rules: n is the full length
 
 
 def call(endpoint: str, service: str, operation: str, input_json: str | None = None,
          timeout_ms: int = 5000) -> str:
-    """One polycall_rpc v1 round trip to a running runtime / daemon. Returns
-    the operation's output JSON text; raises PolycallError (with .output =
-    the remote error object JSON) on failure. Never retried here."""
+    """One polycall_rpc v1 round trip to a running runtime / daemon
+    (`polycall start` / `polycall daemon start`). Returns the operation's
+    output JSON text; raises PolycallError (with .output = the remote error
+    object JSON) on failure. Executes once, never retried here.
+    timeout_ms: 1..600000 (the library rejects other values)."""
+    t = check_u32(timeout_ms, "timeout_ms")
     lib = _native.load()
     # sized for POLYCALL_CALL_MAX_OUTPUT up front: a too-small buffer would
     # discard a result whose operation already ran (never re-executed here)
     cap = (1 << 20) + 1
     out = ctypes.create_string_buffer(cap)
     n = ctypes.c_size_t(0)
-    rc = lib.polycall_call(_native.enc(endpoint), _native.enc(service), _native.enc(operation),
-                           _native.enc(input_json), timeout_ms, out, cap, ctypes.byref(n))
-    text = out.value.decode("utf-8")
+    rc = lib.polycall_call(_native.enc(endpoint, "endpoint"), _native.enc(service, "service"),
+                           _native.enc(operation, "operation"),
+                           _native.enc(input_json, "input_json"), t, out, cap, ctypes.byref(n))
+    text = out.value.decode("utf-8", "replace")
     if rc != OK:
-        raise PolycallError(rc, _native.last_error(lib), text)
+        raise _native.error(lib, rc, text, needed=n.value if n.value > cap else None)
     return text
 
 

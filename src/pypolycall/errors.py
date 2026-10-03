@@ -44,16 +44,43 @@ NAMES = {
 }
 
 
-class PolycallError(Exception):
-    """A Polycall operation failed. ``code`` is the POLYCALL_E_* status,
-    ``name`` its symbolic name and ``detail`` the library's explanation."""
+UINT32_MAX = 0xFFFFFFFF
 
-    def __init__(self, code: int, detail: str = "", output: str | None = None) -> None:
+
+class PolycallError(Exception):
+    """A Polycall operation failed.
+
+    ``code``     the POLYCALL_E_* status (negative int)
+    ``strerror`` the library's ``polycall_strerror(code)`` text, e.g.
+                 ``"POLYCALL_E_TIMEOUT: deadline exceeded"`` (for errors raised
+                 by the pure-Python fallback or by argument checks before the
+                 library is reached: the symbolic name alone)
+    ``name``     the symbolic name, e.g. ``"POLYCALL_E_TIMEOUT"``
+    ``detail``   the library's ``polycall_last_error()`` text for this failure
+    ``output``   for call(): the remote error object JSON, if any
+    ``needed``   for E_TOO_LARGE on a caller buffer: the size required
+    """
+
+    def __init__(self, code: int, detail: str = "", output: str | None = None, *,
+                 strerror: str | None = None, needed: int | None = None) -> None:
         self.code = code
-        self.name = NAMES.get(code, "POLYCALL_E_UNKNOWN")
+        self.strerror = strerror or NAMES.get(code, "POLYCALL_E_UNKNOWN")
+        self.name = self.strerror.split(":", 1)[0]
         self.detail = detail
-        self.output = output          # e.g. the remote error object of call()
+        self.output = output or None  # e.g. the remote error object of call()
+        self.needed = needed
         super().__init__(f"{self.name} ({code}): {detail}" if detail else f"{self.name} ({code})")
+
+
+def check_u32(value: object, what: str) -> int:
+    """Validate an integer that crosses the ABI as uint32_t (timeouts).
+    ctypes would silently truncate out-of-range values (-1 -> 4294967295,
+    2**32 + 5 -> 5), so they are rejected here instead."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise PolycallError(E_INVALID_ARGUMENT, f"{what} must be an int, not {type(value).__name__}")
+    if not 0 <= value <= UINT32_MAX:
+        raise PolycallError(E_INVALID_ARGUMENT, f"{what} must be 0..{UINT32_MAX}, got {value}")
+    return value
 
 
 class PolycallLibraryError(OSError):

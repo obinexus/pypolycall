@@ -22,7 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .errors import (E_AUTH, E_BUSY, E_CANCELLED, E_CLOSED, E_CONFIG, E_INVALID_ARGUMENT,
                      E_INVALID_HANDLE, E_NOT_FOUND, E_PROTOCOL, E_REMOTE, E_TIMEOUT,
-                     E_TOO_LARGE, E_TRANSPORT, PolycallError)
+                     E_TOO_LARGE, E_TRANSPORT, UINT32_MAX, PolycallError, check_u32)
 
 PROTOCOL = "polycall-peer/1"
 ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,63}$")
@@ -340,7 +340,8 @@ class FallbackPeer:
             self._mu.notify_all()
             return "stored"
 
-    def _take(self, timeout_ms: int | None, gen0: int | None = None) -> _Message | None:
+    def _take(self, timeout_ms: int | None, gen0: int | None = None,
+              capacity: int | None = None) -> _Message | None:
         deadline = None if timeout_ms is None else time.monotonic() + timeout_ms / 1000.0
         with self._mu:
             if gen0 is None:
@@ -351,6 +352,10 @@ class FallbackPeer:
                 if self._cancel_gen != gen0:
                     raise PolycallError(E_CANCELLED, "receive was cancelled")
                 if self._inbox:
+                    if capacity is not None and len(self._inbox[0].payload) > capacity:
+                        n = len(self._inbox[0].payload)     # stays queued, as in the C node
+                        raise PolycallError(E_TOO_LARGE, f"payload of {n} bytes does not fit "
+                                            f"a {capacity}-byte buffer", needed=n)
                     m = self._inbox.popleft()
                     self._inbox_bytes -= len(m.payload)
                     return m
@@ -451,6 +456,7 @@ class FallbackPeer:
 
     def ping(self, peer: str, timeout_ms: int = 3000) -> None:
         self._check()
+        check_u32(timeout_ms, "timeout_ms")
         host, port, expected = self._resolve(peer)
         status, obj = self._exchange(host, port, "GET", "/health", None, timeout_ms)
         if status != 200 or not obj or not isinstance(obj.get("node_id"), str):
@@ -463,6 +469,7 @@ class FallbackPeer:
     def send(self, peer: str, payload: bytes | str, message_id: str | None = None,
              timeout_ms: int = 5000) -> str:
         self._check()
+        check_u32(timeout_ms, "timeout_ms")
         data = payload.encode("utf-8") if isinstance(payload, str) else bytes(payload)
         if len(data) > MAX_PAYLOAD:
             raise PolycallError(E_TOO_LARGE, f"payload of {len(data)} bytes exceeds the 1 MiB limit")
@@ -490,10 +497,20 @@ class FallbackPeer:
         self._count("sent_ok")
         return mid
 
-    def recv(self, timeout_ms: int | None = 5000) -> tuple[str, str, bytes]:
-        """Return (sender, message_id, payload). timeout_ms None waits forever."""
+    def recv(self, timeout_ms: int | None = 5000,
+             capacity: int | None = None) -> tuple[str, str, bytes]:
+        """Return (sender, message_id, payload); same contract as Peer.recv
+        (None waits forever; a fixed ``capacity`` too small for the next
+        message raises E_TOO_LARGE with ``.needed`` and leaves it queued)."""
         self._check()
-        m = self._take(timeout_ms)
+        if timeout_ms is not None:
+            check_u32(timeout_ms, "timeout_ms")
+            if timeout_ms == UINT32_MAX:
+                timeout_ms = None
+        if capacity is not None and (isinstance(capacity, bool) or not isinstance(capacity, int)
+                                     or capacity < 0):
+            raise PolycallError(E_INVALID_ARGUMENT, "capacity must be an int >= 0")
+        m = self._take(timeout_ms, capacity=capacity)
         if m is None:
             raise PolycallError(E_TIMEOUT, f"no message within {timeout_ms} ms")
         return m.sender, m.message_id, m.payload

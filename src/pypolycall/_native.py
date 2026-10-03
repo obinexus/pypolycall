@@ -21,7 +21,7 @@ import sys
 import threading
 from pathlib import Path
 
-from .errors import PolycallError, PolycallLibraryError
+from .errors import E_INVALID_ARGUMENT, PolycallError, PolycallLibraryError
 
 ABI_VERSION = 1
 
@@ -146,15 +146,43 @@ def available() -> bool:
 
 
 def last_error(lib: ctypes.CDLL) -> str:
-    buf = ctypes.create_string_buffer(512)
-    lib.polycall_last_error(buf, len(buf))
+    """polycall_last_error() of this thread (Python threads are OS threads,
+    so the thread-local detail belongs to the call this thread just made)."""
+    buf = ctypes.create_string_buffer(1024)
+    n = lib.polycall_last_error(buf, len(buf))
+    if n >= len(buf):
+        buf = ctypes.create_string_buffer(n + 1)
+        lib.polycall_last_error(buf, len(buf))
     return buf.value.decode("utf-8", "replace")
+
+
+def strerror(lib: ctypes.CDLL, rc: int) -> str:
+    return lib.polycall_strerror(rc).decode("utf-8", "replace")
+
+
+def error(lib: ctypes.CDLL, rc: int, output: str | None = None,
+          needed: int | None = None) -> PolycallError:
+    """PolycallError for a failed call: detail first (thread-local), then
+    the static strerror text."""
+    detail = last_error(lib)
+    return PolycallError(rc, detail, output, strerror=strerror(lib, rc), needed=needed)
 
 
 def check(lib: ctypes.CDLL, rc: int, output: str | None = None) -> None:
     if rc != 0:
-        raise PolycallError(rc, last_error(lib), output)
+        raise error(lib, rc, output)
 
 
-def enc(s: str | None) -> bytes | None:
-    return None if s is None else s.encode("utf-8")
+def enc(s: str | None, what: str = "argument") -> bytes | None:
+    """UTF-8 for the C side. A NUL inside the text would silently truncate
+    it at the boundary, so it is rejected instead."""
+    if s is None:
+        return None
+    if not isinstance(s, str):
+        raise PolycallError(E_INVALID_ARGUMENT, f"{what} must be str, not {type(s).__name__}")
+    if "\x00" in s:
+        raise PolycallError(E_INVALID_ARGUMENT, f"{what} contains a NUL character")
+    try:
+        return s.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise PolycallError(E_INVALID_ARGUMENT, f"{what} is not valid Unicode: {exc}") from None
