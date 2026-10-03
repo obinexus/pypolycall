@@ -6,7 +6,7 @@ const path = require('node:path');
 const binding = require('..');
 const metadata = require('../package.json');
 
-assert.equal(metadata.name, '@obinexusltd/pypolycall');
+assert.equal(metadata.name, 'pypolycall');
 assert.equal(metadata.license, 'MIT');
 assert.equal(metadata.publishConfig.access, 'public');
 
@@ -53,7 +53,7 @@ assert.equal(binding.resolve('src', 'pypolycall', '__init__.py'),
 assert.throws(() => binding.resolve('src', '..', 'package.json'), RangeError);
 
 assert.equal(
-  require.resolve('@obinexusltd/pypolycall/examples/pypolycallrc'),
+  require.resolve('pypolycall/examples/pypolycallrc'),
   path.join(__dirname, '..', 'examples', 'pypolycallrc')
 );
 

@@ -2,7 +2,7 @@
   "name": "pypolycall",
   "package": {
     "pypi": "pypolycall",
-    "npm": "@obinexusltd/pypolycall"
+    "npm": "pypolycall"
   },
   "version": "1.1.0",
   "language": "Python",

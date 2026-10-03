@@ -58,7 +58,7 @@ function resolve(directoryName, ...segments) {
 }
 
 module.exports = Object.freeze({
-  packageName: '@obinexusltd/pypolycall',
+  packageName: 'pypolycall',
   directories,
   resolve,
   pyproject: path.join(__dirname, 'pyproject.toml'),

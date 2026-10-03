@@ -1,5 +1,5 @@
 {
-  "name": "@obinexusltd/pypolycall",
+  "name": "pypolycall",
   "version": "1.1.0",
   "description": "npm distribution of the pypolycall Python sources (not a Node binding; install the Python package with pip: python -m pip install pypolycall)",
   "main": "index.js",
