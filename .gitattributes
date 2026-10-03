@@ -1,0 +1,12 @@
+# Keep sources LF on every checkout, whatever core.autocrlf says: the
+# vendored core pins LF upstream, and the sdist/wheel must not change bytes
+# depending on the platform it was built on.
+core/**         text eol=lf
+*.py            text eol=lf
+*.toml          text eol=lf
+*.js            text eol=lf
+*.json          text eol=lf
+*.md            text eol=lf
+CMakeLists.txt  text eol=lf
+pypolycallrc    text eol=lf
+examples/pypolycallrc text eol=lf

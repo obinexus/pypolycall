@@ -59,14 +59,15 @@ def main() -> int:
         except (OSError, subprocess.CalledProcessError):
             return "unknown"
 
-    (dst / "VENDORED.txt").write_text(
-        "Vendored Polycall core sources (build inputs for libpolycall only).\n"
-        f"origin:  https://github.com/obinexus/polycall\n"
-        f"commit:  {git('rev-parse', 'HEAD')}\n"
-        f"describe: {git('describe', '--always', '--dirty')}\n"
-        "Regenerate with: python scripts/vendor_core.py <path-to-polycall-checkout>\n",
-        encoding="utf-8",
-    )
+    # newline="\n": the same bytes whichever OS runs the script
+    with open(dst / "VENDORED.txt", "w", encoding="utf-8", newline="\n") as f:
+        f.write(
+            "Vendored Polycall core sources (build inputs for libpolycall only).\n"
+            f"origin:  https://github.com/obinexus/polycall\n"
+            f"commit:  {git('rev-parse', 'HEAD')}\n"
+            f"describe: {git('describe', '--always', '--dirty')}\n"
+            "Regenerate with: python scripts/vendor_core.py <path-to-polycall-checkout>\n"
+        )
     print(f"vendored {src} -> {dst}")
     return 0
 
