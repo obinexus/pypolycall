@@ -10,6 +10,18 @@ assert.equal(metadata.name, '@obinexusltd/pypolycall');
 assert.equal(metadata.license, 'MIT');
 assert.equal(metadata.publishConfig.access, 'public');
 
+// one version across package.json, pyproject.toml, the Python module and
+// polycall-binding.json
+const root = path.join(__dirname, '..');
+const pyprojectVersion = /^version = "([^"]+)"/m.exec(
+  fs.readFileSync(path.join(root, 'pyproject.toml'), 'utf8'))[1];
+const moduleVersion = /^__version__ = "([^"]+)"/m.exec(
+  fs.readFileSync(path.join(root, 'src', 'pypolycall', '__init__.py'), 'utf8'))[1];
+assert.equal(metadata.version, pyprojectVersion, 'package.json vs pyproject.toml version');
+assert.equal(moduleVersion, pyprojectVersion, '__version__ vs pyproject.toml version');
+assert.equal(require('../polycall-binding.json').version, pyprojectVersion,
+  'polycall-binding.json vs pyproject.toml version');
+
 const author = typeof metadata.author === 'string'
   ? metadata.author
   : `${metadata.author?.name} <${metadata.author?.email}>`;

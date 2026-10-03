@@ -41,6 +41,14 @@ def cli():
     return path
 
 
+def require_or_skip(env: str, reason: str) -> None:
+    """Skip with ``reason``, or fail when ``env``=1 says the release QA
+    requires this check (a missing prerequisite is never a pass)."""
+    if os.environ.get(env) == "1":
+        pytest.fail(f"{reason} (required by {env}=1)")
+    pytest.skip(reason)
+
+
 @pytest.fixture
 def token(monkeypatch):
     t = "pt-" + secrets.token_hex(8)

@@ -1,12 +1,16 @@
 """python -m pypolycall <command> ... (also installed as `pypolycall`).
 
   version                         library + binding versions, backend in use
-  run-config PATH [--lenient]     validate a configuration file
-  describe PATH                   JSON description of a configuration file
-  call ENDPOINT SERVICE OP [JSON] one polycall_rpc v1 call
+  call ENDPOINT SERVICE OP [JSON] [--timeout-ms N]
+                                  one polycall_rpc v1 call (polycall_call)
   peer-serve --node-id ID [--bind H:P] [--peer ID=H:P ...] [--backend B]
-                                  run a node; print received messages as JSON lines
+             [--endpoint-file F]  run a node; print received messages as JSON lines
 The shared token is read from $POLYCALL_DEV_TOKEN.
+
+Configuration files are not handled by this tool: validate them with the
+core's own CLI (`polycall config validate FILE`) or, from Python, with
+pypolycall.run_config() / pypolycall.describe(), which call the core's
+polycall_ffi_run_config() / polycall_ffi_describe().
 """
 from __future__ import annotations
 
@@ -18,8 +22,8 @@ import signal
 import sys
 import threading
 
-from . import (PolycallError, PolycallLibraryError, __version__, call, describe, library_path,
-               native_available, open_peer, run_config, version)
+from . import (PolycallError, PolycallLibraryError, __version__, call, library_path,
+               native_available, open_peer, version)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,11 +31,6 @@ def main(argv: list[str] | None = None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("version")
-    p = sub.add_parser("run-config")
-    p.add_argument("path")
-    p.add_argument("--lenient", action="store_true")
-    p = sub.add_parser("describe")
-    p.add_argument("path")
     p = sub.add_parser("call")
     p.add_argument("endpoint")
     p.add_argument("service")
@@ -51,11 +50,6 @@ def main(argv: list[str] | None = None) -> int:
                               "native": native_available(),
                               "library": version() if native_available() else None,
                               "library_path": library_path()}))
-        elif a.cmd == "run-config":
-            run_config(a.path, strict=not a.lenient)
-            print(f"{a.path}: valid")
-        elif a.cmd == "describe":
-            print(describe(a.path))
         elif a.cmd == "call":
             print(call(a.endpoint, a.service, a.operation, a.input, a.timeout_ms))
         elif a.cmd == "peer-serve":

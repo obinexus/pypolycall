@@ -10,6 +10,8 @@ import textwrap
 
 import pytest
 
+from conftest import require_or_skip
+
 PROBE = textwrap.dedent("""
     import sys, pypolycall
     try:
@@ -45,16 +47,30 @@ def _foreign_library() -> str | None:
 def test_foreign_library_reports_missing_symbols():
     lib = _foreign_library()
     if not lib:
-        pytest.skip("no foreign shared library found to load")
+        require_or_skip("POLYCALL_REQUIRE_LOADER_TESTS", "no foreign shared library found to load")
     r = run_probe(lib)
     assert r.returncode == 3, r.stdout + r.stderr
     assert "lacks polycall_" in r.stdout and ">= 1.1.0" in r.stdout
 
 
+def test_real_old_library_without_abi_v1_is_refused():
+    """The REAL polycall 1.0.0 library (built from the core's v1.0.0 commit
+    and named by POLYCALL_TEST_OLD_LIBRARY): it loads, but lacks every ABI v1
+    symbol, so pypolycall refuses it with a clear error instead of crashing."""
+    old = os.environ.get("POLYCALL_TEST_OLD_LIBRARY")
+    if not old or not os.path.exists(old):
+        require_or_skip("POLYCALL_REQUIRE_LOADER_TESTS",
+                        "POLYCALL_TEST_OLD_LIBRARY does not name a polycall 1.0 library")
+    r = run_probe(old)
+    assert r.returncode == 3, r.stdout + r.stderr
+    assert "lacks polycall_" in r.stdout and ">= 1.1.0" in r.stdout and old in r.stdout
+
+
 def test_incompatible_abi_is_refused(tmp_path):
     cc = shutil.which("cc") or shutil.which("gcc")
     if not cc:
-        pytest.skip("needs a C compiler (cc/gcc) to build the fake library")
+        require_or_skip("POLYCALL_REQUIRE_LOADER_TESTS",
+                        "needs a C compiler (cc/gcc) to build the fake library")
     names = ["polycall_get_version", "polycall_ffi_version", "polycall_strerror",
              "polycall_last_error", "polycall_ffi_run_config", "polycall_ffi_describe",
              "polycall_call", "polycall_peer_open", "polycall_peer_close",
